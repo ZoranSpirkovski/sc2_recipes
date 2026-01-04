@@ -1,10 +1,12 @@
 """
-SC2 Terran Production Calculator
+SC2 Production Calculator
 Calculates resource usage and production rates for a given recipe.
+Supports all three races: Terran, Protoss, Zerg.
 """
 
 from unit_data import (
-    TERRAN_UNITS,
+    ALL_UNITS,
+    SUPPLY_STRUCTURES,
     MINERALS_PER_WORKER_PER_MINUTE,
     VESPENE_PER_WORKER_PER_MINUTE,
     DEFAULT_MINERAL_WORKERS_PER_BASE,
@@ -36,12 +38,14 @@ def calculate_income(bases, mineral_workers_per_base=None, gas_workers_per_base=
     }
 
 
-def calculate_unit_production(unit_id, num_buildings):
+def calculate_unit_production(unit_id, num_buildings, race="Terran"):
     """Calculate production stats for a single unit type."""
-    if unit_id not in TERRAN_UNITS:
-        raise ValueError(f"Unknown unit: {unit_id}")
+    units = ALL_UNITS.get(race, ALL_UNITS["Terran"])
 
-    unit = TERRAN_UNITS[unit_id]
+    if unit_id not in units:
+        raise ValueError(f"Unknown unit: {unit_id} for race {race}")
+
+    unit = units[unit_id]
 
     # Units built per minute per building
     built_per_minute_per_building = 1 / unit["build_time"]
@@ -59,7 +63,7 @@ def calculate_unit_production(unit_id, num_buildings):
         "name": unit["name"],
         "buildings": num_buildings,
         "building_type": unit["building"],
-        "addon": unit["addon"],
+        "addon": unit.get("addon"),
         "rate": round(total_built_per_minute, 2),
         "supply_per_min": round(supply_per_minute, 2),
         "minerals_per_min": round(minerals_per_minute, 2),
@@ -67,23 +71,31 @@ def calculate_unit_production(unit_id, num_buildings):
     }
 
 
-def calculate_supply_depot_cost(total_supply_per_minute):
-    """Calculate minerals and SCVs needed for supply depots.
+def calculate_supply_structure_cost(total_supply_per_minute, race="Terran"):
+    """Calculate minerals and workers needed for supply structures.
 
-    If units consume X supply/min, we need X/8 depots per minute
-    (since each depot provides 8 supply).
-
-    One SCV can build 1/0.35 = 2.86 depots per minute, so we need
-    depots_per_minute * 0.35 SCVs dedicated to depot construction.
+    Each race has different supply structures:
+    - Terran: Supply Depot (built by SCV)
+    - Protoss: Pylon (built by Probe)
+    - Zerg: Overlord (spawned from Larva - no worker needed)
     """
-    depots_per_minute = total_supply_per_minute / SUPPLY_PER_DEPOT
-    depot_mineral_cost = depots_per_minute * DEPOT_MINERAL_COST
-    scvs_for_depots = depots_per_minute * DEPOT_BUILD_TIME
+    supply_struct = SUPPLY_STRUCTURES.get(race, SUPPLY_STRUCTURES["Terran"])
+
+    supply_per_structure = supply_struct["supply"]
+    build_time = supply_struct["build_time"]
+    mineral_cost = supply_struct["minerals"]
+    worker_required = supply_struct.get("worker_required", True)
+
+    structures_per_minute = total_supply_per_minute / supply_per_structure
+    structure_mineral_cost = structures_per_minute * mineral_cost
+    workers_for_supply = structures_per_minute * build_time if worker_required else 0
 
     return {
-        "depots_per_minute": round(depots_per_minute, 2),
-        "mineral_cost": round(depot_mineral_cost, 2),
-        "scvs_required": round(scvs_for_depots, 2)
+        "structure_name": supply_struct["name"],
+        "structures_per_minute": round(structures_per_minute, 2),
+        "mineral_cost": round(structure_mineral_cost, 2),
+        "workers_required": round(workers_for_supply, 2),
+        "worker_required": worker_required
     }
 
 
@@ -94,6 +106,7 @@ def calculate_recipe(recipe_data):
     recipe_data format:
     {
         "name": "Bio-Tank 3 Base",
+        "race": "Terran",
         "bases": 3,
         "mineral_workers_per_base": 16,
         "gas_workers_per_base": 6,
@@ -104,6 +117,7 @@ def calculate_recipe(recipe_data):
         }
     }
     """
+    race = recipe_data.get("race", "Terran")
     bases = recipe_data.get("bases", 3)
     mineral_workers_per_base = recipe_data.get("mineral_workers_per_base", DEFAULT_MINERAL_WORKERS_PER_BASE)
     gas_workers_per_base = recipe_data.get("gas_workers_per_base", DEFAULT_GAS_WORKERS_PER_BASE)
@@ -120,15 +134,19 @@ def calculate_recipe(recipe_data):
 
     for unit_id, config in units_config.items():
         if config.get("enabled", False) and config.get("buildings", 0) > 0:
-            production = calculate_unit_production(unit_id, config["buildings"])
-            unit_productions.append(production)
-            total_minerals_used += production["minerals_per_min"]
-            total_vespene_used += production["vespene_per_min"]
-            total_supply_per_minute += production["supply_per_min"]
+            try:
+                production = calculate_unit_production(unit_id, config["buildings"], race)
+                unit_productions.append(production)
+                total_minerals_used += production["minerals_per_min"]
+                total_vespene_used += production["vespene_per_min"]
+                total_supply_per_minute += production["supply_per_min"]
+            except ValueError:
+                # Skip unknown units
+                continue
 
-    # Calculate supply depot costs
-    depot_costs = calculate_supply_depot_cost(total_supply_per_minute)
-    total_minerals_used += depot_costs["mineral_cost"]
+    # Calculate supply structure costs
+    supply_costs = calculate_supply_structure_cost(total_supply_per_minute, race)
+    total_minerals_used += supply_costs["mineral_cost"]
 
     # Calculate remaining resources
     minerals_remaining = income["mineral_income"] - total_minerals_used
@@ -139,10 +157,11 @@ def calculate_recipe(recipe_data):
 
     return {
         "name": recipe_data.get("name", "Unnamed Recipe"),
+        "race": race,
         "bases": bases,
         "income": income,
         "unit_productions": sorted(unit_productions, key=lambda x: x["building_type"]),
-        "supply_depot": depot_costs,
+        "supply_depot": supply_costs,  # Keep key for backward compatibility
         "total_supply_per_minute": round(total_supply_per_minute, 2),
         "totals": {
             "minerals_used": round(total_minerals_used, 2),
@@ -160,7 +179,7 @@ def summarize_buildings(unit_productions):
     building_counts = {}
 
     for prod in unit_productions:
-        key = (prod["building_type"], prod["addon"])
+        key = (prod["building_type"], prod.get("addon"))
         if key not in building_counts:
             building_counts[key] = 0
         building_counts[key] += prod["buildings"]

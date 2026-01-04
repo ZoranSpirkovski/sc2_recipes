@@ -1,19 +1,21 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  TERRAN_UNITS,
+  ALL_UNITS,
+  BUILDING_CATEGORIES,
   getUnitsByBuilding,
+  getSupplyStructure,
   MINERALS_PER_WORKER_PER_MINUTE,
   VESPENE_PER_WORKER_PER_MINUTE,
   DEFAULT_MINERAL_WORKERS_PER_BASE,
-  DEFAULT_GAS_WORKERS_PER_BASE,
-  SUPPLY_PER_DEPOT,
-  DEPOT_BUILD_TIME,
-  DEPOT_MINERAL_COST
+  DEFAULT_GAS_WORKERS_PER_BASE
 } from './unitData';
 
-const BUILDINGS = ["Barracks", "Factory", "Starport", "Command Center"];
+const RACES = ["Terran", "Protoss", "Zerg"];
 
 function App() {
+  // Race selection
+  const [race, setRace] = useState("Terran");
+
   // Recipe state
   const [recipeName, setRecipeName] = useState("Bio-Tank 3 Base");
   const [bases, setBases] = useState(3);
@@ -22,14 +24,28 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
+  // Get current race's units and buildings
+  const currentUnits = ALL_UNITS[race];
+  const currentBuildings = BUILDING_CATEGORIES[race];
+  const supplyStructure = getSupplyStructure(race);
+
   // Units state: { unitId: { enabled: boolean, buildings: number } }
   const [units, setUnits] = useState(() => {
     const initial = {};
-    for (const unitId of Object.keys(TERRAN_UNITS)) {
+    for (const unitId of Object.keys(currentUnits)) {
       initial[unitId] = { enabled: false, buildings: 1 };
     }
     return initial;
   });
+
+  // Reset units when race changes
+  useEffect(() => {
+    const initial = {};
+    for (const unitId of Object.keys(currentUnits)) {
+      initial[unitId] = { enabled: false, buildings: 1 };
+    }
+    setUnits(initial);
+  }, [race]);
 
   // Calculate income
   const income = useMemo(() => {
@@ -53,7 +69,9 @@ function App() {
     for (const [unitId, config] of Object.entries(units)) {
       if (!config.enabled || config.buildings <= 0) continue;
 
-      const unit = TERRAN_UNITS[unitId];
+      const unit = currentUnits[unitId];
+      if (!unit) continue;
+
       const builtPerMinute = 1 / unit.build_time;
       const totalBuiltPerMinute = builtPerMinute * config.buildings;
       const mineralsPerMin = totalBuiltPerMinute * unit.minerals;
@@ -77,12 +95,18 @@ function App() {
       totalSupply += supplyPerMin;
     }
 
-    // Supply depot costs: need X/8 depots per minute to provide X supply
-    // One SCV can build 1/0.35 = 2.86 depots/min, so need depots * 0.35 SCVs
-    const depotsPerMinute = totalSupply / SUPPLY_PER_DEPOT;
-    const depotMineralCost = depotsPerMinute * DEPOT_MINERAL_COST;
-    const scvsForDepots = depotsPerMinute * DEPOT_BUILD_TIME;
-    totalMinerals += depotMineralCost;
+    // Supply structure costs (depot/pylon/overlord)
+    const supplyPerStructure = supplyStructure.supply;
+    const structureBuildTime = supplyStructure.build_time;
+    const structureMineralCost = supplyStructure.minerals;
+
+    const structuresPerMinute = totalSupply / supplyPerStructure;
+    const structureMineralCostPerMin = structuresPerMinute * structureMineralCost;
+    const workersForSupply = supplyStructure.worker_required
+      ? structuresPerMinute * structureBuildTime
+      : 0;
+
+    totalMinerals += structureMineralCostPerMin;
 
     const mineralsRemaining = income.mineralIncome - totalMinerals;
     const vespeneRemaining = income.vespeneIncome - totalVespene;
@@ -90,15 +114,15 @@ function App() {
     return {
       unitStats: unitStats.sort((a, b) => a.building.localeCompare(b.building)),
       totalSupply,
-      depotsPerMinute,
-      depotMineralCost,
-      scvsForDepots,
+      structuresPerMinute,
+      structureMineralCost: structureMineralCostPerMin,
+      workersForSupply,
       mineralsUsed: totalMinerals,
       vespeneUsed: totalVespene,
       mineralsRemaining,
       vespeneRemaining
     };
-  }, [units, income]);
+  }, [units, income, currentUnits, supplyStructure]);
 
   // Toggle unit enabled
   const toggleUnit = useCallback((unitId) => {
@@ -114,7 +138,7 @@ function App() {
   // Change building count
   const changeBuildings = useCallback((unitId, delta) => {
     setUnits(prev => {
-      const current = prev[unitId].buildings;
+      const current = prev[unitId]?.buildings || 1;
       const newValue = Math.max(1, Math.min(20, current + delta));
       return {
         ...prev,
@@ -139,6 +163,7 @@ function App() {
     try {
       const recipeData = {
         name: recipeName,
+        race,
         bases,
         mineral_workers_per_base: mineralWorkersPerBase,
         gas_workers_per_base: gasWorkersPerBase,
@@ -177,12 +202,24 @@ function App() {
     }
   };
 
-  const unitsByBuilding = getUnitsByBuilding();
+  const unitsByBuilding = getUnitsByBuilding(race);
+  const maxSupplyPerWorker = supplyStructure.supply / supplyStructure.build_time;
 
   return (
     <div className="app">
       {/* Header */}
       <header className="header">
+        <div className="race-selector">
+          {RACES.map(r => (
+            <button
+              key={r}
+              className={`race-btn ${race === r ? 'active' : ''}`}
+              onClick={() => setRace(r)}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
         <input
           type="text"
           className="recipe-name-input"
@@ -275,20 +312,23 @@ function App() {
       <div className="supply-bar">
         <span>Supply rate: {production.totalSupply.toFixed(1)}/min</span>
         <span className="supply-auto">
-          ~{production.depotsPerMinute.toFixed(1)} depots/min | {production.scvsForDepots.toFixed(1)} SCVs | {production.depotMineralCost.toFixed(0)} M/min
+          ~{production.structuresPerMinute.toFixed(1)} {supplyStructure.name}s/min
+          {supplyStructure.worker_required && ` | ${production.workersForSupply.toFixed(1)} workers`}
+          {' | '}{production.structureMineralCost.toFixed(0)} M/min
         </span>
         <span className="supply-info">
-          (1 SCV = {(SUPPLY_PER_DEPOT / DEPOT_BUILD_TIME).toFixed(1)} supply/min max)
+          (1 {supplyStructure.worker_required ? 'worker' : 'larva'} = {maxSupplyPerWorker.toFixed(1)} supply/min max)
         </span>
       </div>
 
       {/* Unit Selection Grid */}
-      <div className="unit-grid">
-        {BUILDINGS.map(building => (
+      <div className="unit-grid" style={{ gridTemplateColumns: `repeat(${currentBuildings.length}, 1fr)` }}>
+        {currentBuildings.map(building => (
           <div key={building} className="building-column">
             <h3 className="building-header">{building}</h3>
-            {unitsByBuilding[building].map(unit => {
+            {(unitsByBuilding[building] || []).map(unit => {
               const config = units[unit.id];
+              if (!config) return null;
               return (
                 <div key={unit.id} className={`unit-row ${config.enabled ? 'enabled' : ''}`}>
                   <label className="unit-checkbox">

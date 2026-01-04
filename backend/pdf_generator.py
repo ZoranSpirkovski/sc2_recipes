@@ -91,8 +91,9 @@ def generate_pdf(calculation_result):
 
     # Title
     elements.append(Paragraph(calculation_result["name"], title_style))
+    race = calculation_result.get("race", "Terran")
     elements.append(Paragraph(
-        f"Terran Production Recipe • {calculation_result['bases']} Bases • Patch 5.0.12",
+        f"{race} Production Recipe • {calculation_result['bases']} Bases • Patch 5.0.12",
         subtitle_style
     ))
 
@@ -366,14 +367,25 @@ def create_buildings_summary(result):
 
 
 def create_supply_note(result):
-    """Create the supply depot requirement note."""
-    depot = result["supply_depot"]
+    """Create the supply structure requirement note."""
+    supply_info = result["supply_depot"]
     total_supply = result["total_supply_per_minute"]
+    structure_name = supply_info.get("structure_name", "Supply Depot")
+    structures_per_min = supply_info.get("structures_per_minute", supply_info.get("depots_per_minute", 0))
+    mineral_cost = supply_info.get("mineral_cost", 0)
+    worker_required = supply_info.get("worker_required", True)
+    workers_needed = supply_info.get("workers_required", supply_info.get("scvs_required", 0))
 
-    note_text = (
-        f"Producing {total_supply:.1f} supply/min requires ~{depot['depots_per_minute']:.1f} "
-        f"Supply Depots/min ({depot['scvs_required']:.1f} SCVs, {depot['mineral_cost']:.0f} minerals/min)"
-    )
+    if worker_required:
+        note_text = (
+            f"Producing {total_supply:.1f} supply/min requires ~{structures_per_min:.1f} "
+            f"{structure_name}s/min ({workers_needed:.1f} workers, {mineral_cost:.0f} minerals/min)"
+        )
+    else:
+        note_text = (
+            f"Producing {total_supply:.1f} supply/min requires ~{structures_per_min:.1f} "
+            f"{structure_name}s/min ({mineral_cost:.0f} minerals/min, no workers needed)"
+        )
 
     style = ParagraphStyle(
         'SupplyNote',

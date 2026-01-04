@@ -41,6 +41,35 @@ body {
   gap: 16px;
   margin-bottom: 16px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.race-selector {
+  display: flex;
+  gap: 4px;
+}
+
+.race-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #4b5563;
+  color: #9ca3af;
+  border: 1px solid #6b7280;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.race-btn:hover {
+  background: #6b7280;
+  color: white;
+}
+
+.race-btn.active {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
 }
 
 .recipe-name-input {

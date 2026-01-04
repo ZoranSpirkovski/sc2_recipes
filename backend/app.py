@@ -8,7 +8,7 @@ from flask_cors import CORS
 
 from calculator import calculate_recipe
 from pdf_generator import generate_pdf
-from unit_data import TERRAN_UNITS, get_units_by_building
+from unit_data import ALL_UNITS, get_units_by_building
 
 app = Flask(__name__)
 CORS(app)
@@ -17,13 +17,15 @@ CORS(app)
 @app.route('/api/units', methods=['GET'])
 def get_units():
     """Return all available units grouped by building."""
-    return jsonify(get_units_by_building())
+    race = request.args.get('race', 'Terran')
+    return jsonify(get_units_by_building(race))
 
 
 @app.route('/api/unit-data', methods=['GET'])
 def get_unit_data():
     """Return raw unit data dictionary."""
-    return jsonify(TERRAN_UNITS)
+    race = request.args.get('race', 'Terran')
+    return jsonify(ALL_UNITS.get(race, ALL_UNITS["Terran"]))
 
 
 @app.route('/api/calculate', methods=['POST'])
