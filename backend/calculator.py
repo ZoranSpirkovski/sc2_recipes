@@ -46,10 +46,6 @@ def calculate_unit_production(unit_id, num_buildings):
     # Units built per minute per building
     built_per_minute_per_building = 1 / unit["build_time"]
 
-    # Reactor doubles production for compatible units
-    if unit["addon"] == "Reactor":
-        built_per_minute_per_building *= 2
-
     # Total production with all buildings
     total_built_per_minute = built_per_minute_per_building * num_buildings
 

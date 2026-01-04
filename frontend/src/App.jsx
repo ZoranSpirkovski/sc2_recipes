@@ -54,13 +54,7 @@ function App() {
       if (!config.enabled || config.buildings <= 0) continue;
 
       const unit = TERRAN_UNITS[unitId];
-      let builtPerMinute = 1 / unit.build_time;
-
-      // Reactor doubles production
-      if (unit.addon === "Reactor") {
-        builtPerMinute *= 2;
-      }
-
+      const builtPerMinute = 1 / unit.build_time;
       const totalBuiltPerMinute = builtPerMinute * config.buildings;
       const mineralsPerMin = totalBuiltPerMinute * unit.minerals;
       const vespenePerMin = totalBuiltPerMinute * unit.vespene;
