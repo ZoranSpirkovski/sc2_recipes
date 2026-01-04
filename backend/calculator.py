@@ -72,10 +72,12 @@ def calculate_unit_production(unit_id, num_buildings):
 
 
 def calculate_supply_depot_cost(total_supply_per_minute):
-    """Calculate minerals needed for supply depots."""
-    # depots_per_minute = supply_rate / (SUPPLY_PER_DEPOT / DEPOT_BUILD_TIME)
-    depots_per_minute_rate = SUPPLY_PER_DEPOT / DEPOT_BUILD_TIME  # 22.86
-    depots_per_minute = total_supply_per_minute / depots_per_minute_rate
+    """Calculate minerals needed for supply depots.
+
+    If units consume X supply/min, we need X/8 depots per minute
+    (since each depot provides 8 supply).
+    """
+    depots_per_minute = total_supply_per_minute / SUPPLY_PER_DEPOT
     depot_mineral_cost = depots_per_minute * DEPOT_MINERAL_COST
 
     return {

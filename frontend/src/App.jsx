@@ -7,7 +7,6 @@ import {
   DEFAULT_MINERAL_WORKERS_PER_BASE,
   DEFAULT_GAS_WORKERS_PER_BASE,
   SUPPLY_PER_DEPOT,
-  DEPOT_BUILD_TIME,
   DEPOT_MINERAL_COST
 } from './unitData';
 
@@ -83,9 +82,8 @@ function App() {
       totalSupply += supplyPerMin;
     }
 
-    // Supply depot costs
-    const depotsPerMinuteRate = SUPPLY_PER_DEPOT / DEPOT_BUILD_TIME;
-    const depotsPerMinute = totalSupply / depotsPerMinuteRate;
+    // Supply depot costs: need X/8 depots per minute to provide X supply
+    const depotsPerMinute = totalSupply / SUPPLY_PER_DEPOT;
     const depotMineralCost = depotsPerMinute * DEPOT_MINERAL_COST;
     totalMinerals += depotMineralCost;
 
