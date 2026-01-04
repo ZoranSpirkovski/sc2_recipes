@@ -447,13 +447,15 @@ function App() {
                     <span className={`unit-name ${isCustom ? 'custom' : ''}`}>{unit.name}</span>
                   </label>
                   <div className="unit-actions">
-                    <button
-                      className="edit-btn"
-                      onClick={() => setEditingUnit(unit.id)}
-                      title="Edit unit data"
-                    >
-                      &#9998;
-                    </button>
+                    {showSettings && (
+                      <button
+                        className="edit-btn"
+                        onClick={() => setEditingUnit(unit.id)}
+                        title="Edit unit data"
+                      >
+                        &#9998;
+                      </button>
+                    )}
                     {config.enabled && (
                       <div className="building-counter">
                         <button
