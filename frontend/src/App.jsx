@@ -277,6 +277,9 @@ function App() {
         <span className="supply-auto">
           ~{production.depotsPerMinute.toFixed(1)} depots/min | {production.scvsForDepots.toFixed(1)} SCVs | {production.depotMineralCost.toFixed(0)} M/min
         </span>
+        <span className="supply-info">
+          (1 SCV = {(SUPPLY_PER_DEPOT / DEPOT_BUILD_TIME).toFixed(1)} supply/min max)
+        </span>
       </div>
 
       {/* Unit Selection Grid */}
