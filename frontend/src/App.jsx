@@ -11,6 +11,22 @@ import {
 } from './unitData';
 
 const RACES = ["Terran", "Protoss", "Zerg"];
+const STORAGE_KEY = 'sc2_custom_unit_data';
+
+// Load custom unit data from localStorage
+function loadCustomUnitData() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+}
+
+// Save custom unit data to localStorage
+function saveCustomUnitData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
 
 function App() {
   // Race selection
@@ -24,15 +40,32 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-  // Get current race's units and buildings
-  const currentUnits = ALL_UNITS[race];
+  // Custom unit data overrides (persisted to localStorage)
+  const [customUnitData, setCustomUnitData] = useState(loadCustomUnitData);
+
+  // Unit editor modal state
+  const [editingUnit, setEditingUnit] = useState(null);
+
+  // Get default units for current race
+  const defaultUnits = ALL_UNITS[race];
+
+  // Merge default units with custom overrides
+  const currentUnits = useMemo(() => {
+    const customRaceData = customUnitData[race] || {};
+    const merged = {};
+    for (const [unitId, unit] of Object.entries(defaultUnits)) {
+      merged[unitId] = { ...unit, ...customRaceData[unitId] };
+    }
+    return merged;
+  }, [race, customUnitData, defaultUnits]);
+
   const currentBuildings = BUILDING_CATEGORIES[race];
   const supplyStructure = getSupplyStructure(race);
 
   // Units state: { unitId: { enabled: boolean, buildings: number } }
   const [units, setUnits] = useState(() => {
     const initial = {};
-    for (const unitId of Object.keys(currentUnits)) {
+    for (const unitId of Object.keys(defaultUnits)) {
       initial[unitId] = { enabled: false, buildings: 1 };
     }
     return initial;
@@ -41,11 +74,11 @@ function App() {
   // Reset units when race changes
   useEffect(() => {
     const initial = {};
-    for (const unitId of Object.keys(currentUnits)) {
+    for (const unitId of Object.keys(defaultUnits)) {
       initial[unitId] = { enabled: false, buildings: 1 };
     }
     setUnits(initial);
-  }, [race]);
+  }, [race, defaultUnits]);
 
   // Calculate income
   const income = useMemo(() => {
@@ -150,6 +183,56 @@ function App() {
     });
   }, []);
 
+  // Update custom unit data
+  const updateUnitData = useCallback((unitId, field, value) => {
+    setCustomUnitData(prev => {
+      const newData = {
+        ...prev,
+        [race]: {
+          ...prev[race],
+          [unitId]: {
+            ...prev[race]?.[unitId],
+            [field]: value
+          }
+        }
+      };
+      saveCustomUnitData(newData);
+      return newData;
+    });
+  }, [race]);
+
+  // Reset unit to default
+  const resetUnitToDefault = useCallback((unitId) => {
+    setCustomUnitData(prev => {
+      const newData = { ...prev };
+      if (newData[race]) {
+        delete newData[race][unitId];
+        if (Object.keys(newData[race]).length === 0) {
+          delete newData[race];
+        }
+      }
+      saveCustomUnitData(newData);
+      return newData;
+    });
+  }, [race]);
+
+  // Reset all units for current race
+  const resetAllUnitsForRace = useCallback(() => {
+    if (confirm(`Reset all ${race} units to default values?`)) {
+      setCustomUnitData(prev => {
+        const newData = { ...prev };
+        delete newData[race];
+        saveCustomUnitData(newData);
+        return newData;
+      });
+    }
+  }, [race]);
+
+  // Check if unit has custom data
+  const hasCustomData = useCallback((unitId) => {
+    return customUnitData[race]?.[unitId] !== undefined;
+  }, [race, customUnitData]);
+
   // Get balance color class
   const getBalanceClass = (value) => {
     if (value >= 20) return 'balance-positive';
@@ -202,7 +285,24 @@ function App() {
     }
   };
 
-  const unitsByBuilding = getUnitsByBuilding(race);
+  // Get units by building with custom data merged
+  const unitsByBuilding = useMemo(() => {
+    const categories = BUILDING_CATEGORIES[race];
+    const buildings = {};
+    categories.forEach(cat => buildings[cat] = []);
+
+    for (const [unitId, unit] of Object.entries(currentUnits)) {
+      const building = unit.building;
+      if (buildings[building]) {
+        buildings[building].push({ id: unitId, ...unit });
+      } else if (race === "Zerg" && buildings["Hatchery"]) {
+        buildings["Hatchery"].push({ id: unitId, ...unit });
+      }
+    }
+
+    return buildings;
+  }, [race, currentUnits]);
+
   const maxSupplyPerWorker = supplyStructure.supply / supplyStructure.build_time;
 
   return (
@@ -281,6 +381,12 @@ function App() {
               max="12"
             />
           </div>
+          <button
+            className="reset-btn"
+            onClick={resetAllUnitsForRace}
+          >
+            Reset {race} Units
+          </button>
         </div>
       )}
 
@@ -329,6 +435,7 @@ function App() {
             {(unitsByBuilding[building] || []).map(unit => {
               const config = units[unit.id];
               if (!config) return null;
+              const isCustom = hasCustomData(unit.id);
               return (
                 <div key={unit.id} className={`unit-row ${config.enabled ? 'enabled' : ''}`}>
                   <label className="unit-checkbox">
@@ -337,25 +444,34 @@ function App() {
                       checked={config.enabled}
                       onChange={() => toggleUnit(unit.id)}
                     />
-                    <span className="unit-name">{unit.name}</span>
+                    <span className={`unit-name ${isCustom ? 'custom' : ''}`}>{unit.name}</span>
                   </label>
-                  {config.enabled && (
-                    <div className="building-counter">
-                      <button
-                        className="counter-btn small"
-                        onClick={() => changeBuildings(unit.id, -1)}
-                      >
-                        -
-                      </button>
-                      <span className="counter-value">{config.buildings}</span>
-                      <button
-                        className="counter-btn small"
-                        onClick={() => changeBuildings(unit.id, 1)}
-                      >
-                        +
-                      </button>
-                    </div>
-                  )}
+                  <div className="unit-actions">
+                    <button
+                      className="edit-btn"
+                      onClick={() => setEditingUnit(unit.id)}
+                      title="Edit unit data"
+                    >
+                      &#9998;
+                    </button>
+                    {config.enabled && (
+                      <div className="building-counter">
+                        <button
+                          className="counter-btn small"
+                          onClick={() => changeBuildings(unit.id, -1)}
+                        >
+                          -
+                        </button>
+                        <span className="counter-value">{config.buildings}</span>
+                        <button
+                          className="counter-btn small"
+                          onClick={() => changeBuildings(unit.id, 1)}
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -390,6 +506,73 @@ function App() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Unit Editor Modal */}
+      {editingUnit && (
+        <div className="modal-overlay" onClick={() => setEditingUnit(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Edit {currentUnits[editingUnit]?.name}</h3>
+              <button className="modal-close" onClick={() => setEditingUnit(null)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="edit-field">
+                <label>Build Time (minutes):</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  value={currentUnits[editingUnit]?.build_time || 0}
+                  onChange={(e) => updateUnitData(editingUnit, 'build_time', parseFloat(e.target.value) || 0)}
+                />
+                <span className="field-hint">
+                  Default: {defaultUnits[editingUnit]?.build_time} min ({(defaultUnits[editingUnit]?.build_time * 60).toFixed(0)}s)
+                </span>
+              </div>
+              <div className="edit-field">
+                <label>Minerals:</label>
+                <input
+                  type="number"
+                  value={currentUnits[editingUnit]?.minerals || 0}
+                  onChange={(e) => updateUnitData(editingUnit, 'minerals', parseInt(e.target.value) || 0)}
+                />
+                <span className="field-hint">Default: {defaultUnits[editingUnit]?.minerals}</span>
+              </div>
+              <div className="edit-field">
+                <label>Vespene:</label>
+                <input
+                  type="number"
+                  value={currentUnits[editingUnit]?.vespene || 0}
+                  onChange={(e) => updateUnitData(editingUnit, 'vespene', parseInt(e.target.value) || 0)}
+                />
+                <span className="field-hint">Default: {defaultUnits[editingUnit]?.vespene}</span>
+              </div>
+              <div className="edit-field">
+                <label>Supply:</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={currentUnits[editingUnit]?.supply || 0}
+                  onChange={(e) => updateUnitData(editingUnit, 'supply', parseFloat(e.target.value) || 0)}
+                />
+                <span className="field-hint">Default: {defaultUnits[editingUnit]?.supply}</span>
+              </div>
+            </div>
+            <div className="modal-footer">
+              {hasCustomData(editingUnit) && (
+                <button
+                  className="reset-btn"
+                  onClick={() => {
+                    resetUnitToDefault(editingUnit);
+                  }}
+                >
+                  Reset to Default
+                </button>
+              )}
+              <button className="save-btn" onClick={() => setEditingUnit(null)}>Done</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
