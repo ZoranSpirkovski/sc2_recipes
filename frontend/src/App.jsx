@@ -7,6 +7,7 @@ import {
   DEFAULT_MINERAL_WORKERS_PER_BASE,
   DEFAULT_GAS_WORKERS_PER_BASE,
   SUPPLY_PER_DEPOT,
+  DEPOT_BUILD_TIME,
   DEPOT_MINERAL_COST
 } from './unitData';
 
@@ -83,8 +84,10 @@ function App() {
     }
 
     // Supply depot costs: need X/8 depots per minute to provide X supply
+    // One SCV can build 1/0.35 = 2.86 depots/min, so need depots * 0.35 SCVs
     const depotsPerMinute = totalSupply / SUPPLY_PER_DEPOT;
     const depotMineralCost = depotsPerMinute * DEPOT_MINERAL_COST;
+    const scvsForDepots = depotsPerMinute * DEPOT_BUILD_TIME;
     totalMinerals += depotMineralCost;
 
     const mineralsRemaining = income.mineralIncome - totalMinerals;
@@ -95,6 +98,7 @@ function App() {
       totalSupply,
       depotsPerMinute,
       depotMineralCost,
+      scvsForDepots,
       mineralsUsed: totalMinerals,
       vespeneUsed: totalVespene,
       mineralsRemaining,
@@ -277,7 +281,7 @@ function App() {
       <div className="supply-bar">
         <span>Supply rate: {production.totalSupply.toFixed(1)}/min</span>
         <span className="supply-auto">
-          Auto: ~{production.depotsPerMinute.toFixed(1)} depots/min ({production.depotMineralCost.toFixed(0)} M/min)
+          ~{production.depotsPerMinute.toFixed(1)} depots/min | {production.scvsForDepots.toFixed(1)} SCVs | {production.depotMineralCost.toFixed(0)} M/min
         </span>
       </div>
 

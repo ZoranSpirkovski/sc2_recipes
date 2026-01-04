@@ -72,17 +72,22 @@ def calculate_unit_production(unit_id, num_buildings):
 
 
 def calculate_supply_depot_cost(total_supply_per_minute):
-    """Calculate minerals needed for supply depots.
+    """Calculate minerals and SCVs needed for supply depots.
 
     If units consume X supply/min, we need X/8 depots per minute
     (since each depot provides 8 supply).
+
+    One SCV can build 1/0.35 = 2.86 depots per minute, so we need
+    depots_per_minute * 0.35 SCVs dedicated to depot construction.
     """
     depots_per_minute = total_supply_per_minute / SUPPLY_PER_DEPOT
     depot_mineral_cost = depots_per_minute * DEPOT_MINERAL_COST
+    scvs_for_depots = depots_per_minute * DEPOT_BUILD_TIME
 
     return {
         "depots_per_minute": round(depots_per_minute, 2),
-        "mineral_cost": round(depot_mineral_cost, 2)
+        "mineral_cost": round(depot_mineral_cost, 2),
+        "scvs_required": round(scvs_for_depots, 2)
     }
 
 

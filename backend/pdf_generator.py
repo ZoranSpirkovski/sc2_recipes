@@ -372,7 +372,7 @@ def create_supply_note(result):
 
     note_text = (
         f"Producing {total_supply:.1f} supply/min requires ~{depot['depots_per_minute']:.1f} "
-        f"Supply Depots/min ({depot['mineral_cost']:.0f} minerals/min included in totals)"
+        f"Supply Depots/min ({depot['scvs_required']:.1f} SCVs, {depot['mineral_cost']:.0f} minerals/min)"
     )
 
     style = ParagraphStyle(
