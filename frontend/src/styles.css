@@ -1,0 +1,396 @@
+/* SC2 Recipe Calculator Styles */
+
+:root {
+  --blue: #2563eb;
+  --light-blue: #dbeafe;
+  --green: #16a34a;
+  --light-green: #dcfce7;
+  --red: #dc2626;
+  --light-red: #fee2e2;
+  --yellow: #ca8a04;
+  --light-yellow: #fef9c3;
+  --gray: #6b7280;
+  --light-gray: #f3f4f6;
+  --dark-gray: #374151;
+  --minerals: #60a5fa;
+  --vespene: #4ade80;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: #1f2937;
+  color: #f9fafb;
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.recipe-name-input {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 18px;
+  font-weight: 600;
+  border: 2px solid var(--gray);
+  border-radius: 8px;
+  background: #374151;
+  color: #f9fafb;
+}
+
+.recipe-name-input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.pdf-button {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pdf-button:hover {
+  background: #1d4ed8;
+}
+
+.pdf-button:disabled {
+  background: var(--gray);
+  cursor: not-allowed;
+}
+
+/* Economy Bar */
+.economy-bar {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  padding: 12px 16px;
+  background: #374151;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.economy-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.economy-label {
+  color: var(--gray);
+  font-size: 14px;
+}
+
+.economy-value {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.economy-value.minerals {
+  color: var(--minerals);
+}
+
+.economy-value.vespene {
+  color: var(--vespene);
+}
+
+.counter-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--gray);
+  border-radius: 4px;
+  background: #4b5563;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.counter-btn:hover {
+  background: #6b7280;
+}
+
+.counter-btn.small {
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+}
+
+.counter-value {
+  font-weight: 600;
+  min-width: 24px;
+  text-align: center;
+}
+
+.settings-btn {
+  margin-left: auto;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--gray);
+  border-radius: 4px;
+  background: #4b5563;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.settings-btn:hover {
+  background: #6b7280;
+}
+
+/* Settings Panel */
+.settings-panel {
+  display: flex;
+  gap: 24px;
+  padding: 12px 16px;
+  background: #4b5563;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setting-item label {
+  font-size: 14px;
+  color: var(--light-gray);
+}
+
+.setting-item input {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid var(--gray);
+  border-radius: 4px;
+  background: #374151;
+  color: white;
+  font-size: 14px;
+}
+
+/* Balance Bar */
+.balance-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.balance-item {
+  padding: 12px;
+  background: #374151;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.balance-item.balance-positive {
+  background: var(--light-green);
+  color: var(--green);
+}
+
+.balance-item.balance-negative {
+  background: var(--light-red);
+  color: var(--red);
+}
+
+.balance-item.balance-neutral {
+  background: var(--light-yellow);
+  color: var(--yellow);
+}
+
+.balance-label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  opacity: 0.8;
+}
+
+.balance-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Supply Bar */
+.supply-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--light-green);
+  color: var(--green);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.supply-auto {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* Unit Grid */
+.unit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.building-column {
+  background: #374151;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.building-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--light-gray);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #4b5563;
+}
+
+.unit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.unit-row:hover {
+  background: #4b5563;
+}
+
+.unit-row.enabled {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.unit-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.unit-checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.unit-name {
+  font-size: 14px;
+}
+
+.building-counter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Production Table */
+.production-table {
+  background: #374151;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.production-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.production-table th {
+  background: var(--light-blue);
+  color: var(--dark-gray);
+  padding: 12px 16px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.production-table th:first-child {
+  text-align: left;
+}
+
+.production-table td {
+  padding: 10px 16px;
+  text-align: center;
+  border-bottom: 1px solid #4b5563;
+}
+
+.production-table td:first-child {
+  text-align: left;
+}
+
+.production-table tr:nth-child(even) {
+  background: #3f4a5a;
+}
+
+.unit-name-cell {
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .unit-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .balance-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .economy-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .settings-btn {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .unit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .pdf-button {
+    width: 100%;
+  }
+}
