@@ -39,6 +39,7 @@ function App() {
   const [gasWorkersPerBase, setGasWorkersPerBase] = useState(DEFAULT_GAS_WORKERS_PER_BASE);
   const [showSettings, setShowSettings] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [ignoreSupplyCost, setIgnoreSupplyCost] = useState(false);
 
   // Custom unit data overrides (persisted to localStorage)
   const [customUnitData, setCustomUnitData] = useState(loadCustomUnitData);
@@ -139,7 +140,9 @@ function App() {
       ? structuresPerMinute * structureBuildTime
       : 0;
 
-    totalMinerals += structureMineralCostPerMin;
+    if (!ignoreSupplyCost) {
+      totalMinerals += structureMineralCostPerMin;
+    }
 
     const mineralsRemaining = income.mineralIncome - totalMinerals;
     const vespeneRemaining = income.vespeneIncome - totalVespene;
@@ -155,7 +158,7 @@ function App() {
       mineralsRemaining,
       vespeneRemaining
     };
-  }, [units, income, currentUnits, supplyStructure]);
+  }, [units, income, currentUnits, supplyStructure, ignoreSupplyCost]);
 
   // Toggle unit enabled
   const toggleUnit = useCallback((unitId) => {
@@ -381,6 +384,14 @@ function App() {
               max="12"
             />
           </div>
+          <label className="setting-checkbox">
+            <input
+              type="checkbox"
+              checked={ignoreSupplyCost}
+              onChange={(e) => setIgnoreSupplyCost(e.target.checked)}
+            />
+            <span>Ignore supply cost</span>
+          </label>
           <button
             className="reset-btn"
             onClick={resetAllUnitsForRace}

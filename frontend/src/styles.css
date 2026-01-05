@@ -224,6 +224,21 @@ body {
   font-size: 14px;
 }
 
+.setting-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--light-gray);
+}
+
+.setting-checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 /* Balance Bar */
 .balance-bar {
   display: grid;
